@@ -1,0 +1,166 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 30px;
+  color: white;
+}
+
+h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.controls {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  margin-bottom: 20px;
+}
+
+.control-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #e0e7ff;
+  color: #667eea;
+}
+
+.btn-secondary:hover {
+  background: #c7d2fe;
+}
+
+label {
+  font-weight: 600;
+  color: #667eea;
+}
+
+input[type="number"] {
+  padding: 8px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  width: 80px;
+  font-size: 14px;
+}
+
+.pattern-grid {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  overflow-x: auto;
+}
+
+.pattern-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pattern-table th {
+  background: #667eea;
+  color: white;
+  padding: 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.pattern-table td {
+  padding: 5px;
+  border: 1px solid #ddd;
+  text-align: center;
+  min-width: 30px;
+}
+
+.pattern-table tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.step {
+  width: 25px;
+  height: 25px;
+  margin: 2px;
+  cursor: pointer;
+  background: #e0e7ff;
+  border: 2px solid #c7d2fe;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.step.active {
+  background: #667eea;
+  border-color: #764ba2;
+}
+
+.step.playing {
+  background: #10b981;
+  border-color: #059669;
+  transform: scale(1.1);
+}
+
+.track-label {
+  font-weight: 600;
+  color: #667eea;
+  padding-right: 15px;
+}
+
+.status {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.status.info {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #3b82f6;
+}

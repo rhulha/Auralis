@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auralis Pattern Test</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="css/test_pattern.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Auralis Pattern Test</h1>
+      <p>Real-time drum pattern sequencer</p>
+    </header>
+
+    <div class="controls">
+      <div class="control-group">
+        <button id="playBtn" class="btn-primary">▶ Play</button>
+        <button id="stopBtn" class="btn-secondary">⏹ Stop</button>
+        <label for="bpm">BPM:</label>
+        <input type="number" id="bpm" value="120" min="60" max="200">
+        <label for="steps">Steps:</label>
+        <input type="number" id="steps" value="32" min="8" max="64" step="8">
+        <button id="clearBtn" class="btn-secondary">Clear</button>
+      </div>
+      <div id="status" class="status info">Click on the grid to create patterns. Press Play to hear your beat!</div>
+    </div>
+
+    <div class="pattern-grid">
+      <table class="pattern-table">
+        <thead>
+          <tr>
+            <th>Track</th>
+            <th colspan="32" id="stepsHeader">Steps</th>
+          </tr>
+        </thead>
+        <tbody id="patternBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuralisEngine } from './scripts/auralis-engine.js';
+
+    const engine = new AuralisEngine();
+    let isInitialized = false;
+    let isPlaying = false;
+    let currentStep = 0;
+    let intervalId = null;
+
+    const tracks = [
+      { name: 'Bass Drum', sound: 'BassDrum', pattern: [] },
+      { name: 'Snare', sound: 'SnareDrum', pattern: [] },
+      { name: 'Hi Hat', sound: 'HiHat', pattern: [] }
+    ];
+
+    const sounds = `
+sound BassDrum:
+  body = sine(50Hz) → decay(400ms)
+  click = white → highpass(2000Hz) → decay(30ms)
+  mix body + click
+
+sound SnareDrum:
+  body = triangle(180Hz) → decay(200ms)
+  noise = white → bandpass(3000Hz, 1500Hz) → decay(300ms)
+  mix body + noise
+
+sound HiHat:
+  mix white → highpass(7000Hz) → decay(100ms)
+`;
+
+    async function init() {
+      if (!isInitialized) {
+        await engine.init();
+        engine.compile(sounds);
+        isInitialized = true;
+      }
+    }
+
+    function createPatternGrid() {
+      const stepCount = parseInt(document.getElementById('steps').value);
+      const tbody = document.getElementById('patternBody');
+      tbody.innerHTML = '';
+
+      tracks.forEach((track, trackIndex) => {
+        track.pattern = new Array(stepCount).fill(false);
+
+        const row = document.createElement('tr');
+        const labelCell = document.createElement('td');
+        labelCell.className = 'track-label';
+        labelCell.textContent = track.name;
+        row.appendChild(labelCell);
+
+        for (let i = 0; i < stepCount; i++) {
+          const cell = document.createElement('td');
+          const stepBtn = document.createElement('div');
+          stepBtn.className = 'step';
+          stepBtn.dataset.track = trackIndex;
+          stepBtn.dataset.step = i;
+
+          stepBtn.addEventListener('click', () => {
+            track.pattern[i] = !track.pattern[i];
+            stepBtn.classList.toggle('active', track.pattern[i]);
+          });
+
+          cell.appendChild(stepBtn);
+          row.appendChild(cell);
+        }
+
+        tbody.appendChild(row);
+      });
+
+      loadPatternFromImage();
+    }
+
+    function loadPatternFromImage() {
+      tracks[0].pattern = [
+        true, false, false, false, false, false, false, false,
+        true, false, false, false, false, false, false, false,
+        true, false, false, false, false, false, false, false,
+        true, false, false, false, true, true, true, false
+      ];
+
+      tracks[1].pattern = [
+        false, false, false, false, true, false, false, false,
+        false, false, false, false, true, false, false, false,
+        false, false, false, false, true, false, false, false,
+        false, false, false, false, true, false, false, false
+      ];
+
+      tracks[2].pattern = [
+        true, false, true, false, true, false, true, false,
+        true, false, true, false, true, false, true, false,
+        true, false, true, false, true, false, true, false,
+        true, false, true, false, true, false, true, false
+      ];
+
+      updateGridDisplay();
+    }
+
+    function updateGridDisplay() {
+      tracks.forEach((track, trackIndex) => {
+        track.pattern.forEach((active, stepIndex) => {
+          const stepBtn = document.querySelector(`[data-track="${trackIndex}"][data-step="${stepIndex}"]`);
+          if (stepBtn) {
+            stepBtn.classList.toggle('active', active);
+          }
+        });
+      });
+    }
+
+    function playStep() {
+      const stepCount = parseInt(document.getElementById('steps').value);
+
+      document.querySelectorAll('.step.playing').forEach(el => el.classList.remove('playing'));
+
+      tracks.forEach((track, trackIndex) => {
+        if (track.pattern[currentStep]) {
+          engine.play(track.sound, {}, 0.2);
+
+          const stepBtn = document.querySelector(`[data-track="${trackIndex}"][data-step="${currentStep}"]`);
+          if (stepBtn) {
+            stepBtn.classList.add('playing');
+            setTimeout(() => stepBtn.classList.remove('playing'), 100);
+          }
+        }
+      });
+
+      currentStep = (currentStep + 1) % stepCount;
+    }
+
+    function startPlayback() {
+      if (isPlaying) return;
+
+      const bpm = parseInt(document.getElementById('bpm').value);
+      const stepDuration = (60 / bpm) * 1000 / 4;
+
+      isPlaying = true;
+      currentStep = 0;
+      document.getElementById('playBtn').disabled = true;
+
+      intervalId = setInterval(playStep, stepDuration);
+    }
+
+    function stopPlayback() {
+      if (!isPlaying) return;
+
+      isPlaying = false;
+      clearInterval(intervalId);
+      document.getElementById('playBtn').disabled = false;
+      document.querySelectorAll('.step.playing').forEach(el => el.classList.remove('playing'));
+    }
+
+    function clearPattern() {
+      tracks.forEach(track => track.pattern.fill(false));
+      updateGridDisplay();
+    }
+
+    document.getElementById('playBtn').addEventListener('click', async () => {
+      await init();
+      startPlayback();
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', stopPlayback);
+
+    document.getElementById('clearBtn').addEventListener('click', clearPattern);
+
+    document.getElementById('steps').addEventListener('change', () => {
+      if (isPlaying) stopPlayback();
+      createPatternGrid();
+    });
+
+    createPatternGrid();
+  </script>
+</body>
+</html>
