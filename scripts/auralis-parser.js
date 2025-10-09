@@ -265,22 +265,112 @@ export class AuralisParser {
 
     if (!this.check('RPAREN')) {
       do {
-        if (this.check('IDENTIFIER')) {
-          const lookahead = this.tokens[this.current + 1];
-          if (lookahead && lookahead.type === 'EQUALS') {
-            const name = this.advance().value;
-            this.consume('EQUALS', "Expected '='");
-            const value = this.parseExpression();
-            args.push({ name, value });
-            continue;
-          }
-        }
+        const isNamedArg = (this.check('IDENTIFIER') || this.check('MIX')) &&
+                           this.tokens[this.current + 1]?.type === 'EQUALS';
 
-        args.push({ value: this.parseExpression() });
+        if (isNamedArg) {
+          const name = this.advance().value;
+          this.consume('EQUALS', "Expected '='");
+          const value = this.parseArgumentExpression();
+          args.push({ name, value });
+        } else {
+          args.push({ value: this.parseArgumentExpression() });
+        }
       } while (this.match('COMMA'));
     }
 
     return args;
+  }
+
+  parseArgumentExpression() {
+    return this.parseArgumentPipeline();
+  }
+
+  isAtArgumentBoundary() {
+    if (this.check('COMMA') || this.check('RPAREN') || this.isAtEnd()) {
+      return true;
+    }
+    return false;
+  }
+
+  parseArgumentPipeline() {
+    let left = this.parseArgumentMix();
+
+    while (this.check('ARROW') && !this.isAtArgumentBoundary()) {
+      this.advance();
+      const right = this.parseArgumentMix();
+      left = {
+        type: 'Pipeline',
+        left,
+        right
+      };
+    }
+
+    return left;
+  }
+
+  parseArgumentMix() {
+    let left = this.parseArgumentPrimary();
+
+    while (this.check('PLUS') && !this.isAtArgumentBoundary()) {
+      this.advance();
+      const right = this.parseArgumentPrimary();
+      left = {
+        type: 'Mix',
+        left,
+        right
+      };
+    }
+
+    return left;
+  }
+
+  parseArgumentPrimary() {
+    if (this.match('MIX')) {
+      return this.parseArgumentMix();
+    }
+
+    if (this.check('NUMBER')) {
+      const token = this.advance();
+      return {
+        type: 'Literal',
+        value: token.value,
+        unit: token.unit
+      };
+    }
+
+    if (this.check('IDENTIFIER')) {
+      const lookahead = this.tokens[this.current + 1];
+
+      if (lookahead?.type === 'EQUALS') {
+        throw new Error(`Named argument '${this.peek().value}=' found in expression context. This should be handled by parseArguments.`);
+      }
+
+      const name = this.advance().value;
+
+      if (this.match('LPAREN')) {
+        const args = this.parseArguments();
+        this.consume('RPAREN', "Expected ')'");
+        return {
+          type: 'FunctionCall',
+          name,
+          args
+        };
+      }
+
+      return {
+        type: 'Identifier',
+        name
+      };
+    }
+
+    if (this.match('LPAREN')) {
+      const expr = this.parseArgumentExpression();
+      this.consume('RPAREN', "Expected ')'");
+      return expr;
+    }
+
+    throw new Error(`Unexpected token in argument: ${this.peek().type}`);
   }
 
   match(...types) {

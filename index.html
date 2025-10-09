@@ -15,83 +15,39 @@
       <p style="margin-top: 15px;"><a href="test_pattern.html" style="color: white; text-decoration: underline; font-size: 1.1em;">Try the Pattern Sequencer →</a></p>
     </header>
 
-    <div class="content">
-      <div class="panel">
-        <h2>Code Editor</h2>
-        <textarea id="editor" placeholder="Write your Auralis code here..."></textarea>
-        <div class="controls">
-          <button class="btn-primary" onclick="compileAndPlay()">▶ Compile & Play</button>
-          <button class="btn-secondary" onclick="compileOnly()">⚡ Compile Only</button>
-          <div class="duration-control">
-            <label for="duration">Duration:</label>
-            <input type="number" id="duration" value="2" min="0.1" max="10" step="0.1">
-            <span>seconds</span>
-          </div>
-        </div>
-        <div id="status"></div>
+    <div class="panel">
+      <h2>Examples</h2>
+      <div class="examples-compact">
+        <button class="example-btn" onclick="loadExample('bassdrum')" title="Deep kick drum with body and click">Bass Drum</button>
+        <button class="example-btn" onclick="loadExample('snare')" title="Snappy snare with body and noise">Snare</button>
+        <button class="example-btn" onclick="loadExample('hihat')" title="Metallic percussion sound">Hi-Hat</button>
+        <button class="example-btn" onclick="loadExample('bell')" title="Harmonic bell with reverb">Bell</button>
+        <button class="example-btn" onclick="loadExample('synth')" title="Filtered sawtooth synthesizer">Synth Lead</button>
+        <button class="example-btn" onclick="loadExample('acidbass')" title="Resonant filter with ADSR envelope">Acid Bass</button>
+        <button class="example-btn" onclick="loadExample('pad')" title="Slow attack pad with harmonics">Pad</button>
+        <button class="example-btn" onclick="loadExample('lead')" title="Saw wave with resonant filter">Lead</button>
+        <button class="example-btn" onclick="loadExample('delaybass')" title="Bass with rhythmic delay feedback">Delay Bass</button>
+        <button class="example-btn" onclick="loadExample('choruslead')" title="Thick lead with chorus effect">Chorus Lead</button>
+        <button class="example-btn" onclick="loadExample('flangerbass')" title="Sweeping flanger modulation">Flanger</button>
+        <button class="example-btn" onclick="loadExample('stereobell')" title="Spatialized bell tones">Stereo Bell</button>
+        <button class="example-btn" onclick="loadExample('spacelead')" title="Delay + chorus ambient lead">Space Lead</button>
+        <button class="example-btn" onclick="loadExample('widehihat')" title="Stereo spread hi-hat percussion">Wide Hi-Hat</button>
       </div>
+    </div>
 
-      <div class="panel">
-        <h2>Examples</h2>
-        <div class="examples">
-          <div class="example" onclick="loadExample('bassdrum')">
-            <h3>Bass Drum</h3>
-            <p>Deep kick drum with body and click</p>
-          </div>
-          <div class="example" onclick="loadExample('snare')">
-            <h3>Snare Drum</h3>
-            <p>Snappy snare with body and noise</p>
-          </div>
-          <div class="example" onclick="loadExample('bell')">
-            <h3>Bell Tone</h3>
-            <p>Harmonic bell with reverb</p>
-          </div>
-          <div class="example" onclick="loadExample('synth')">
-            <h3>Synth Lead</h3>
-            <p>Filtered sawtooth synthesizer</p>
-          </div>
-          <div class="example" onclick="loadExample('hihat')">
-            <h3>Hi-Hat</h3>
-            <p>Metallic percussion sound</p>
-          </div>
-          <div class="example" onclick="loadExample('acidbass')">
-            <h3>Acid Bass</h3>
-            <p>Resonant filter with ADSR envelope</p>
-          </div>
-          <div class="example" onclick="loadExample('pad')">
-            <h3>Synth Pad</h3>
-            <p>Slow attack pad with harmonics</p>
-          </div>
-          <div class="example" onclick="loadExample('lead')">
-            <h3>Lead Synth</h3>
-            <p>Saw wave with resonant filter</p>
-          </div>
-          <div class="example" onclick="loadExample('delaybass')">
-            <h3>Delay Bass</h3>
-            <p>Bass with rhythmic delay feedback</p>
-          </div>
-          <div class="example" onclick="loadExample('choruslead')">
-            <h3>Chorus Lead</h3>
-            <p>Thick lead with chorus effect</p>
-          </div>
-          <div class="example" onclick="loadExample('flangerbass')">
-            <h3>Flanger Bass</h3>
-            <p>Sweeping flanger modulation</p>
-          </div>
-          <div class="example" onclick="loadExample('stereobell')">
-            <h3>Stereo Bell</h3>
-            <p>Spatialized bell tones</p>
-          </div>
-          <div class="example" onclick="loadExample('spacelead')">
-            <h3>Space Lead</h3>
-            <p>Delay + chorus ambient lead</p>
-          </div>
-          <div class="example" onclick="loadExample('widehihat')">
-            <h3>Wide Hi-Hat</h3>
-            <p>Stereo spread hi-hat percussion</p>
-          </div>
+    <div class="panel">
+      <h2>Code Editor</h2>
+      <textarea id="editor" placeholder="Write your Auralis code here..."></textarea>
+      <div class="controls">
+        <button class="btn-primary" onclick="compileAndPlay()">▶ Compile & Play</button>
+        <button class="btn-secondary" onclick="compileOnly()">⚡ Compile Only</button>
+        <div class="duration-control">
+          <label for="duration">Duration:</label>
+          <input type="number" id="duration" value="2" min="0.1" max="10" step="0.1">
+          <span>seconds</span>
         </div>
       </div>
+      <div id="status"></div>
     </div>
 
     <div class="panel">

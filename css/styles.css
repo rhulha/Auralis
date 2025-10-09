@@ -134,6 +134,31 @@ button {
   font-size: 0.9em;
 }
 
+.examples-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.example-btn {
+  padding: 8px 16px;
+  font-size: 14px;
+  background: #f8f9fa;
+  color: #667eea;
+  border: 2px solid #e0e7ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.example-btn:hover {
+  background: #e0e7ff;
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
 #output {
   background: #f8f9fa;
   padding: 15px;
