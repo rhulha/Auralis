@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auralis Sound Language Demo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Auralis</h1>
+      <p class="tagline">A Sound Language for Musical Expression</p>
+    </header>
+
+    <div class="content">
+      <div class="panel">
+        <h2>Code Editor</h2>
+        <textarea id="editor" placeholder="Write your Auralis code here..."></textarea>
+        <div class="controls">
+          <button class="btn-primary" onclick="compileAndPlay()">▶ Compile & Play</button>
+          <button class="btn-secondary" onclick="compileOnly()">⚡ Compile Only</button>
+          <div class="duration-control">
+            <label for="duration">Duration:</label>
+            <input type="number" id="duration" value="2" min="0.1" max="10" step="0.1">
+            <span>seconds</span>
+          </div>
+        </div>
+        <div id="status"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Examples</h2>
+        <div class="examples">
+          <div class="example" onclick="loadExample('bassdrum')">
+            <h3>Bass Drum</h3>
+            <p>Deep kick drum with body and click</p>
+          </div>
+          <div class="example" onclick="loadExample('snare')">
+            <h3>Snare Drum</h3>
+            <p>Snappy snare with body and noise</p>
+          </div>
+          <div class="example" onclick="loadExample('bell')">
+            <h3>Bell Tone</h3>
+            <p>Harmonic bell with reverb</p>
+          </div>
+          <div class="example" onclick="loadExample('synth')">
+            <h3>Synth Lead</h3>
+            <p>Filtered sawtooth synthesizer</p>
+          </div>
+          <div class="example" onclick="loadExample('hihat')">
+            <h3>Hi-Hat</h3>
+            <p>Metallic percussion sound</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Output</h2>
+      <div id="output">Compiled AST will appear here...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { AuralisEngine } from './auralis-engine.js';
+    import { AuralisParser } from './auralis-parser.js';
+    import { examples } from './examples.js';
+
+    const engine = new AuralisEngine();
+    let isInitialized = false;
+
+    async function initEngine() {
+      if (!isInitialized) {
+        await engine.init();
+        isInitialized = true;
+        showStatus('Engine initialized', 'success');
+      }
+    }
+
+    async function compileAndPlay() {
+      try {
+        await initEngine();
+
+        const code = document.getElementById('editor').value;
+        const duration = parseFloat(document.getElementById('duration').value) || 2;
+
+        if (!code.trim()) {
+          showStatus('Please enter some Auralis code', 'error');
+          return;
+        }
+
+        engine.compile(code);
+
+        const soundNames = extractSoundNames(code);
+        if (soundNames.length === 0) {
+          showStatus('No sounds defined to play', 'error');
+          return;
+        }
+
+        const soundName = soundNames[0];
+        engine.play(soundName, {}, duration);
+
+        showStatus(`Playing "${soundName}" for ${duration}s`, 'success');
+        displayAST(code);
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    function compileOnly() {
+      try {
+        const code = document.getElementById('editor').value;
+
+        if (!code.trim()) {
+          showStatus('Please enter some Auralis code', 'error');
+          return;
+        }
+
+        displayAST(code);
+        showStatus('Compilation successful', 'success');
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    function displayAST(code) {
+      const parser = new AuralisParser();
+      const ast = parser.parse(code);
+      document.getElementById('output').textContent = JSON.stringify(ast, null, 2);
+    }
+
+    function extractSoundNames(code) {
+      const matches = code.matchAll(/sound\s+(\w+)/g);
+      return Array.from(matches, m => m[1]);
+    }
+
+    function loadExample(exampleName) {
+      const example = examples[exampleName];
+      if (example) {
+        document.getElementById('editor').value = example;
+        showStatus(`Loaded example: ${exampleName}`, 'info');
+      }
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status');
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+
+      if (type === 'success' || type === 'info') {
+        setTimeout(() => {
+          statusDiv.textContent = '';
+          statusDiv.className = 'status';
+        }, 3000);
+      }
+    }
+
+    window.compileAndPlay = compileAndPlay;
+    window.compileOnly = compileOnly;
+    window.loadExample = loadExample;
+
+    loadExample('bassdrum');
+  </script>
+</body>
+</html>
