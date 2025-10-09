@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auralis Audio Test</title>
+</head>
+<body>
+  <h1>Auralis Audio Test</h1>
+  <button id="testBtn">Test Basic Sine Wave</button>
+  <button id="testAuralis">Test Auralis BassDrum</button>
+  <div id="output"></div>
+
+  <script type="module">
+    import { AuralisEngine } from './scripts/auralis-engine.js';
+
+    const output = document.getElementById('output');
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      output.textContent = 'Testing basic Web Audio...';
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      await audioContext.resume();
+
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      gain.gain.value = 0.3;
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      const now = audioContext.currentTime;
+      osc.start(now);
+      osc.stop(now + 1);
+
+      output.textContent = 'Playing 440Hz sine wave for 1 second...';
+    });
+
+    document.getElementById('testAuralis').addEventListener('click', async () => {
+      try {
+        output.textContent = 'Initializing Auralis engine...';
+
+        const engine = new AuralisEngine();
+        await engine.init();
+
+        output.textContent = 'Compiling BassDrum...';
+
+        const code = `sound BassDrum:
+  body = sine(50Hz) → decay(400ms)
+  click = white → highpass(2000Hz) → decay(30ms)
+  mix body + click`;
+
+        engine.compile(code);
+
+        output.textContent = 'Playing BassDrum...';
+
+        const result = engine.play('BassDrum', {}, 2);
+
+        output.textContent = 'BassDrum should be playing. Result: ' + JSON.stringify(result, null, 2);
+      } catch (error) {
+        output.textContent = 'Error: ' + error.message + '\n' + error.stack;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -10,14 +10,11 @@ export const examples = {
   mix body + noise`,
 
   bell: `sound BellTone:
-  tone = sine(880Hz) + sine(1320Hz, amp=0.3)
-  tone → decay(3s) → reverb(hall)`,
+  mix sine(880Hz) + sine(1320Hz, amp=0.3) → decay(3s)`,
 
   synth: `sound SynthLead:
-  osc = saw(440Hz)
-  osc → lowpass(1200Hz) → decay(1s)`,
+  mix saw(440Hz) → lowpass(1200Hz) → decay(1s)`,
 
   hihat: `sound HiHat:
-  noise = white → highpass(7000Hz)
-  noise → decay(100ms)`
+  mix white → highpass(7000Hz) → decay(100ms)`
 };

@@ -46,13 +46,13 @@ export class AuralisCompiler {
       case 'Pipeline':
         return {
           type: 'pipeline',
-          stages: this.flattenPipeline(expr)
+          stages: this.flattenPipeline(expr, context)
         };
 
       case 'Mix':
         return {
           type: 'mix',
-          sources: this.flattenMix(expr)
+          sources: this.flattenMix(expr, context)
         };
 
       case 'FunctionCall':
@@ -72,15 +72,15 @@ export class AuralisCompiler {
     }
   }
 
-  flattenPipeline(expr) {
+  flattenPipeline(expr, context) {
     const stages = [];
 
     const collect = (node) => {
       if (node.type === 'Pipeline') {
         collect(node.left);
-        stages.push(this.evaluateExpression(node.right, {}));
+        stages.push(this.evaluateExpression(node.right, context));
       } else {
-        stages.push(this.evaluateExpression(node, {}));
+        stages.push(this.evaluateExpression(node, context));
       }
     };
 
@@ -88,7 +88,7 @@ export class AuralisCompiler {
     return stages;
   }
 
-  flattenMix(expr) {
+  flattenMix(expr, context) {
     const sources = [];
 
     const collect = (node) => {
@@ -96,7 +96,7 @@ export class AuralisCompiler {
         collect(node.left);
         collect(node.right);
       } else {
-        sources.push(this.evaluateExpression(node, {}));
+        sources.push(this.evaluateExpression(node, context));
       }
     };
 
@@ -165,6 +165,8 @@ export class AuralisCompiler {
     const now = this.audioContext.currentTime;
     const endTime = now + duration;
 
+    console.log('buildAudioGraph received:', soundDesc);
+
     if (soundDesc.type === 'pipeline') {
       return this.buildPipeline(soundDesc.stages, now, endTime);
     }
@@ -177,6 +179,7 @@ export class AuralisCompiler {
       return this.buildFunction(soundDesc, now, endTime);
     }
 
+    console.warn('buildAudioGraph: Unknown sound desc type', soundDesc);
     return null;
   }
 
@@ -219,8 +222,12 @@ export class AuralisCompiler {
     const gainNode = this.audioContext.createGain();
     gainNode.gain.value = 1;
 
+    console.log('buildMix sources:', sources);
+
     for (const source of sources) {
+      console.log('buildMix processing source:', source);
       const nodeInfo = this.buildNode(source, startTime, endTime);
+      console.log('buildMix nodeInfo:', nodeInfo);
       if (nodeInfo) {
         const output = nodeInfo.output || nodeInfo.node || nodeInfo;
         output.connect(gainNode);
