@@ -165,8 +165,6 @@ export class AuralisCompiler {
     const now = this.audioContext.currentTime;
     const endTime = now + duration;
 
-    console.log('buildAudioGraph received:', soundDesc);
-
     if (soundDesc.type === 'pipeline') {
       return this.buildPipeline(soundDesc.stages, now, endTime);
     }
@@ -179,7 +177,6 @@ export class AuralisCompiler {
       return this.buildFunction(soundDesc, now, endTime);
     }
 
-    console.warn('buildAudioGraph: Unknown sound desc type', soundDesc);
     return null;
   }
 
@@ -222,12 +219,8 @@ export class AuralisCompiler {
     const gainNode = this.audioContext.createGain();
     gainNode.gain.value = 1;
 
-    console.log('buildMix sources:', sources);
-
     for (const source of sources) {
-      console.log('buildMix processing source:', source);
       const nodeInfo = this.buildNode(source, startTime, endTime);
-      console.log('buildMix nodeInfo:', nodeInfo);
       if (nodeInfo) {
         const output = nodeInfo.output || nodeInfo.node || nodeInfo;
         output.connect(gainNode);
@@ -293,12 +286,21 @@ export class AuralisCompiler {
 
       case 'reverb':
         return this.createReverb(desc);
+      case 'delay':
+        return this.createDelay(desc, startTime, endTime);
+      case 'chorus':
+        return this.createChorus(desc, startTime, endTime);
+      case 'flanger':
+        return this.createFlanger(desc, startTime, endTime);
+      case 'pan':
+        return this.createPan(desc, startTime, endTime);
+
       case 'lowpass':
-        return this.createFilter('lowpass', desc);
+        return this.createFilter('lowpass', desc, startTime, endTime);
       case 'highpass':
-        return this.createFilter('highpass', desc);
+        return this.createFilter('highpass', desc, startTime, endTime);
       case 'bandpass':
-        return this.createFilter('bandpass', desc);
+        return this.createFilter('bandpass', desc, startTime, endTime);
 
       case 'distort':
         return this.createDistortion(desc);
@@ -441,12 +443,20 @@ export class AuralisCompiler {
     return { node: output, input, output };
   }
 
-  createFilter(type, desc) {
+  createFilter(type, desc, startTime, endTime) {
     const filter = this.audioContext.createBiquadFilter();
     filter.type = type;
 
     const freq = desc.positionalArgs[0] || desc.args.freq || desc.args.f;
-    filter.frequency.value = this.parseFrequency(freq);
+
+    if (freq && freq.type === 'function' && freq.name === 'lfo') {
+      const lfoNode = this.createLFO(freq, startTime, endTime);
+      lfoNode.output.connect(filter.frequency);
+      lfoNode.offset.connect(filter.frequency);
+      filter.frequency.value = 0;
+    } else {
+      filter.frequency.value = this.parseFrequency(freq);
+    }
 
     const q = desc.positionalArgs[1] || desc.args.q || desc.args.resonance;
     if (q) {
@@ -554,5 +564,128 @@ export class AuralisCompiler {
     }
 
     return { node: gain, input: gain, output: gain };
+  }
+
+  createDelay(desc, startTime, endTime) {
+    const delayNode = this.audioContext.createDelay(5.0);
+    const time = this.parseTime(desc.positionalArgs[0] || desc.args.time || { type: 'literal', value: 500, unit: 'ms' });
+    const feedback = this.parseAmplitude(desc.args.feedback || { type: 'literal', value: 0.3 });
+    const mix = this.parseAmplitude(desc.args.mix || { type: 'literal', value: 0.5 });
+
+    delayNode.delayTime.value = time;
+
+    const feedbackGain = this.audioContext.createGain();
+    feedbackGain.gain.value = feedback;
+
+    const dryGain = this.audioContext.createGain();
+    const wetGain = this.audioContext.createGain();
+    const input = this.audioContext.createGain();
+    const output = this.audioContext.createGain();
+
+    dryGain.gain.value = 1 - mix;
+    wetGain.gain.value = mix;
+
+    input.connect(dryGain);
+    input.connect(delayNode);
+    delayNode.connect(feedbackGain);
+    feedbackGain.connect(delayNode);
+    delayNode.connect(wetGain);
+    dryGain.connect(output);
+    wetGain.connect(output);
+
+    return { node: output, input, output };
+  }
+
+  createChorus(desc, startTime, endTime) {
+    const delayNode = this.audioContext.createDelay(1.0);
+    const rate = this.parseFrequency(desc.args.rate || { type: 'literal', value: 1.5, unit: 'Hz' });
+    const depth = this.parseTime(desc.args.depth || { type: 'literal', value: 20, unit: 'ms' });
+    const mix = this.parseAmplitude(desc.args.mix || { type: 'literal', value: 0.5 });
+
+    const baseDelay = 0.030;
+    delayNode.delayTime.value = baseDelay;
+
+    const lfo = this.audioContext.createOscillator();
+    lfo.frequency.value = rate;
+    lfo.type = 'sine';
+
+    const lfoGain = this.audioContext.createGain();
+    lfoGain.gain.value = depth;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(delayNode.delayTime);
+
+    const dryGain = this.audioContext.createGain();
+    const wetGain = this.audioContext.createGain();
+    const input = this.audioContext.createGain();
+    const output = this.audioContext.createGain();
+
+    dryGain.gain.value = 1 - mix;
+    wetGain.gain.value = mix;
+
+    input.connect(dryGain);
+    input.connect(delayNode);
+    delayNode.connect(wetGain);
+    dryGain.connect(output);
+    wetGain.connect(output);
+
+    lfo.start(startTime);
+    lfo.stop(endTime);
+
+    return { node: output, input, output, lfo };
+  }
+
+  createFlanger(desc, startTime, endTime) {
+    const delayNode = this.audioContext.createDelay(1.0);
+    const rate = this.parseFrequency(desc.args.rate || { type: 'literal', value: 0.5, unit: 'Hz' });
+    const depth = this.parseTime(desc.args.depth || { type: 'literal', value: 5, unit: 'ms' });
+    const feedback = this.parseAmplitude(desc.args.feedback || { type: 'literal', value: 0.5 });
+    const mix = this.parseAmplitude(desc.args.mix || { type: 'literal', value: 0.5 });
+
+    const baseDelay = 0.005;
+    delayNode.delayTime.value = baseDelay;
+
+    const lfo = this.audioContext.createOscillator();
+    lfo.frequency.value = rate;
+    lfo.type = 'sine';
+
+    const lfoGain = this.audioContext.createGain();
+    lfoGain.gain.value = depth;
+
+    lfo.connect(lfoGain);
+    lfoGain.connect(delayNode.delayTime);
+
+    const feedbackGain = this.audioContext.createGain();
+    feedbackGain.gain.value = feedback;
+
+    const dryGain = this.audioContext.createGain();
+    const wetGain = this.audioContext.createGain();
+    const input = this.audioContext.createGain();
+    const output = this.audioContext.createGain();
+
+    dryGain.gain.value = 1 - mix;
+    wetGain.gain.value = mix;
+
+    input.connect(dryGain);
+    input.connect(delayNode);
+    delayNode.connect(feedbackGain);
+    feedbackGain.connect(delayNode);
+    delayNode.connect(wetGain);
+    dryGain.connect(output);
+    wetGain.connect(output);
+
+    lfo.start(startTime);
+    lfo.stop(endTime);
+
+    return { node: output, input, output, lfo };
+  }
+
+  createPan(desc, startTime, endTime) {
+    const panner = this.audioContext.createStereoPanner();
+    const position = this.parseAmplitude(desc.positionalArgs[0] || desc.args.position || desc.args.pan || { type: 'literal', value: 0 });
+
+    panner.pan.value = Math.max(-1, Math.min(1, position));
+
+    return { node: panner, input: panner, output: panner };
   }
 }
