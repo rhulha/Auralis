@@ -62,12 +62,15 @@ Modifiers describe temporal or dynamic changes to signals:
 
 Modifier	Meaning
 decay(500ms)	amplitude decay over time
+adsr(attack, decay, sustain, release)	full ADSR envelope control
 pitch_down(200ms)	pitch falls over time
 distort(amount)	nonlinear distortion
 fade_in(100ms)	gradual amplitude rise
-`reverb(room	hall
-lowpass(freq)	frequency filter
-highpass(freq)	removes low frequencies
+lfo(rate, min, max)	low frequency oscillator for modulation
+reverb(room/hall)	reverb effect
+lowpass(freq, q)	low-pass filter with resonance
+highpass(freq, q)	high-pass filter with resonance
+bandpass(freq, bandwidth)	band-pass filter
 
 Modifiers can be chained with →.
 
@@ -118,24 +121,23 @@ sound Drum(kick_freq=60Hz):
 4. Example Sounds
 4.1 Bass Drum
 sound BassDrum:
-  body = sine(50Hz) → pitch_down(200ms)
-  click = noise → highpass(2kHz) → short(30ms)
+  body = sine(50Hz) → decay(400ms)
+  click = white → highpass(2kHz) → decay(30ms)
   mix body + click
-  envelope = instant attack, decay 400ms
 
 4.2 Snare Drum
 sound SnareDrum:
   body = triangle(180Hz) → decay(200ms)
   noise = white → bandpass(3kHz, 1.5kHz) → decay(300ms)
-  mix body 0.4 + noise 0.6
-  envelope = sharp attack, quick fade
+  mix body + noise
 
-4.3 Piano Note
-sound PianoNote:
-  key = A4
-  tone = sine + gentle harmonics
-  envelope = soft attack, long decay
-  reverb = light room
+4.3 Acid Bass (Modern)
+sound AcidBass:
+  mix saw(55Hz) → lowpass(800Hz, q=10) → adsr(attack=5ms, decay=200ms, sustain=0.3, release=100ms)
+
+4.4 Synth Pad (Modern)
+sound Pad:
+  mix sine(220Hz) + sine(330Hz, amp=0.7) + sine(440Hz, amp=0.5) → adsr(attack=500ms, decay=300ms, sustain=0.8, release=1s)
 
 5. Syntax Summary
 Category	Syntax	Example

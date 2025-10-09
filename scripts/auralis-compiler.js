@@ -279,8 +279,13 @@ export class AuralisCompiler {
       case 'sawtooth':
         return this.createOscillator('sawtooth', desc, startTime, endTime);
 
+      case 'lfo':
+        return this.createLFO(desc, startTime, endTime);
+
       case 'decay':
         return this.createDecay(desc, startTime, endTime);
+      case 'adsr':
+        return this.createADSR(desc, startTime, endTime);
       case 'pitch_down':
         return this.createPitchDown(desc, startTime, endTime);
       case 'fade_in':
@@ -443,10 +448,12 @@ export class AuralisCompiler {
     const freq = desc.positionalArgs[0] || desc.args.freq || desc.args.f;
     filter.frequency.value = this.parseFrequency(freq);
 
-    if (type === 'bandpass') {
-      const q = desc.positionalArgs[1] || desc.args.q;
-      if (q) {
+    const q = desc.positionalArgs[1] || desc.args.q || desc.args.resonance;
+    if (q) {
+      if (type === 'bandpass') {
         filter.Q.value = this.parseFrequency(q) / filter.frequency.value;
+      } else {
+        filter.Q.value = this.parseAmplitude(q);
       }
     }
 
@@ -489,6 +496,62 @@ export class AuralisCompiler {
 
     gain.gain.setValueAtTime(1, startTime);
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+    return { node: gain, input: gain, output: gain };
+  }
+
+  createLFO(desc, startTime, endTime) {
+    const rate = this.parseFrequency(desc.positionalArgs[0] || desc.args.rate || { type: 'literal', value: 2, unit: 'Hz' });
+    const min = this.parseFrequency(desc.positionalArgs[1] || desc.args.min || { type: 'literal', value: 200, unit: 'Hz' });
+    const max = this.parseFrequency(desc.positionalArgs[2] || desc.args.max || { type: 'literal', value: 2000, unit: 'Hz' });
+
+    const lfo = this.audioContext.createOscillator();
+    lfo.frequency.value = rate;
+    lfo.type = 'sine';
+
+    const lfoGain = this.audioContext.createGain();
+    lfoGain.gain.value = (max - min) / 2;
+
+    const offset = this.audioContext.createConstantSource();
+    offset.offset.value = min + (max - min) / 2;
+
+    lfo.connect(lfoGain);
+
+    lfo.start(startTime);
+    lfo.stop(endTime);
+    offset.start(startTime);
+    offset.stop(endTime);
+
+    return {
+      node: lfoGain,
+      input: null,
+      output: lfoGain,
+      lfo: lfo,
+      offset: offset,
+      isModulator: true
+    };
+  }
+
+  createADSR(desc, startTime, endTime) {
+    const gain = this.audioContext.createGain();
+
+    const attackTime = this.parseTime(desc.args.attack || desc.positionalArgs[0] || { type: 'literal', value: 10, unit: 'ms' });
+    const decayTime = this.parseTime(desc.args.decay || desc.positionalArgs[1] || { type: 'literal', value: 100, unit: 'ms' });
+    const sustainLevel = this.parseAmplitude(desc.args.sustain || desc.positionalArgs[2] || { type: 'literal', value: 0.7 });
+    const releaseTime = this.parseTime(desc.args.release || desc.positionalArgs[3] || { type: 'literal', value: 200, unit: 'ms' });
+
+    const attackEnd = startTime + attackTime;
+    const decayEnd = attackEnd + decayTime;
+    const releaseStart = Math.max(decayEnd, endTime - releaseTime);
+
+    gain.gain.setValueAtTime(0.001, startTime);
+    gain.gain.exponentialRampToValueAtTime(1, attackEnd);
+    gain.gain.exponentialRampToValueAtTime(Math.max(sustainLevel, 0.001), decayEnd);
+
+    if (releaseStart < endTime) {
+      gain.gain.setValueAtTime(Math.max(sustainLevel, 0.001), releaseStart);
+      gain.gain.exponentialRampToValueAtTime(0.001, endTime);
+    }
 
     return { node: gain, input: gain, output: gain };
   }

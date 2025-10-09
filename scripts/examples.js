@@ -16,5 +16,14 @@ export const examples = {
   mix saw(440Hz) → lowpass(1200Hz) → decay(1s)`,
 
   hihat: `sound HiHat:
-  mix white → highpass(7000Hz) → decay(100ms)`
+  mix white → highpass(7000Hz) → decay(100ms)`,
+
+  acidbass: `sound AcidBass:
+  mix saw(55Hz) → lowpass(800Hz, q=10) → adsr(attack=5ms, decay=200ms, sustain=0.3, release=100ms)`,
+
+  pad: `sound Pad:
+  mix sine(220Hz) + sine(330Hz, amp=0.7) + sine(440Hz, amp=0.5) → adsr(attack=500ms, decay=300ms, sustain=0.8, release=1s)`,
+
+  lead: `sound SynthLead:
+  mix saw(440Hz) → lowpass(1500Hz, q=5) → adsr(attack=10ms, decay=150ms, sustain=0.6, release=300ms)`
 };
