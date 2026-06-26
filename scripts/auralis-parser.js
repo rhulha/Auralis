@@ -156,22 +156,19 @@ export class AuralisParser {
   }
 
   parseStatement() {
-    if (this.check('IDENTIFIER')) {
-      const ident = this.peek();
-      this.advance();
-
-      if (this.match('EQUALS')) {
-        const value = this.parseExpression();
-        this.consumeNewlines();
-        return {
-          type: 'Assignment',
-          name: ident.value,
-          value
-        };
-      }
+    if (this.check('IDENTIFIER') && this.tokens[this.current + 1]?.type === 'EQUALS') {
+      const ident = this.advance();
+      this.consume('EQUALS', "Expected '='");
+      const value = this.parseExpression();
+      this.consumeNewlines();
+      return {
+        type: 'Assignment',
+        name: ident.value,
+        value
+      };
     }
 
-    if (this.check('MIX') || this.check('IDENTIFIER') || this.check('NUMBER')) {
+    if (this.check('MIX') || this.check('IDENTIFIER') || this.check('NUMBER') || this.check('LPAREN')) {
       const expr = this.parseExpression();
       this.consumeNewlines();
       return {

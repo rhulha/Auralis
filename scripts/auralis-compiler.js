@@ -28,7 +28,13 @@ export class AuralisCompiler {
       }
     }
 
-    return context._output || context;
+    if (context._output === undefined) {
+      throw new Error(
+        `Sound '${name}' has no output. Add a final expression that produces sound, e.g. 'mix body + click'.`
+      );
+    }
+
+    return context._output;
   }
 
   resolveParams(paramDefs, args) {
@@ -203,6 +209,11 @@ export class AuralisCompiler {
 
     for (const stage of stages) {
       const nodeInfo = this.buildNode(stage, startTime, endTime);
+
+      if (nodeInfo && nodeInfo.isPitchMod) {
+        this.applyPitchMod(lastNode, nodeInfo);
+        continue;
+      }
 
       if (nodeInfo) {
         if (!firstNode) {
@@ -415,7 +426,27 @@ export class AuralisCompiler {
   }
 
   createPitchDown(desc, startTime, endTime) {
-    return { type: 'pitch_down', desc, startTime, endTime };
+    const duration = this.parseTime(desc.positionalArgs[0] || desc.args.time);
+    const target = desc.positionalArgs[1] || desc.args.to;
+    return {
+      isPitchMod: true,
+      duration,
+      targetFreq: target ? this.parseFrequency(target) : null,
+      startTime
+    };
+  }
+
+  applyPitchMod(prevNodeInfo, mod) {
+    const source = prevNodeInfo && prevNodeInfo.source;
+    if (!source || !source.frequency) {
+      console.warn('pitch_down has no preceding oscillator to modulate');
+      return;
+    }
+    const startFreq = source.frequency.value;
+    const endFreq = Math.max(mod.targetFreq ?? startFreq / 4, 0.001);
+    source.frequency.cancelScheduledValues(mod.startTime);
+    source.frequency.setValueAtTime(startFreq, mod.startTime);
+    source.frequency.exponentialRampToValueAtTime(endFreq, mod.startTime + mod.duration);
   }
 
   createFadeIn(desc, startTime, endTime) {

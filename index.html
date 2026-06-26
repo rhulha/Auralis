@@ -41,6 +41,7 @@
       <div class="controls">
         <button class="btn-primary" onclick="compileAndPlay()">▶ Compile & Play</button>
         <button class="btn-secondary" onclick="compileOnly()">⚡ Compile Only</button>
+        <button class="btn-secondary" onclick="exportWav()">⬇ Export WAV</button>
         <div class="duration-control">
           <label for="duration">Duration:</label>
           <input type="number" id="duration" value="2" min="0.1" max="10" step="0.1">
@@ -103,6 +104,43 @@
       }
     }
 
+    async function exportWav() {
+      try {
+        await initEngine();
+
+        const code = document.getElementById('editor').value;
+        const duration = parseFloat(document.getElementById('duration').value) || 2;
+
+        if (!code.trim()) {
+          showStatus('Please enter some Auralis code', 'error');
+          return;
+        }
+
+        engine.compile(code);
+
+        const soundNames = extractSoundNames(code);
+        if (soundNames.length === 0) {
+          showStatus('No sounds defined to export', 'error');
+          return;
+        }
+
+        const soundName = soundNames[0];
+        const blob = await engine.renderToWav(soundName, {}, duration);
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${soundName}.wav`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        showStatus(`Exported "${soundName}.wav"`, 'success');
+      } catch (error) {
+        showStatus(`Error: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
     function compileOnly() {
       try {
         const code = document.getElementById('editor').value;
@@ -154,6 +192,7 @@
 
     window.compileAndPlay = compileAndPlay;
     window.compileOnly = compileOnly;
+    window.exportWav = exportWav;
     window.loadExample = loadExample;
 
     loadExample('bassdrum');

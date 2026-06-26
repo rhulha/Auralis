@@ -13,7 +13,13 @@ global.window = {
     createOscillator() {
       return {
         type: 'sine',
-        frequency: { value: 440 },
+        frequency: {
+          value: 440,
+          setValueAtTime: vi.fn(),
+          exponentialRampToValueAtTime: vi.fn(),
+          cancelScheduledValues: vi.fn(),
+          connect: vi.fn()
+        },
         connect: vi.fn(),
         start: vi.fn(),
         stop: vi.fn()
@@ -111,6 +117,29 @@ global.window = {
     close() {
       return Promise.resolve();
     }
+  }
+};
+
+global.OfflineAudioContext = class MockOfflineAudioContext extends global.window.AudioContext {
+  constructor(channels, length, sampleRate) {
+    super();
+    this.numberOfChannels = channels;
+    this.length = length;
+    this.sampleRate = sampleRate;
+    this.destination = { connect: vi.fn() };
+  }
+
+  startRendering() {
+    const buffers = [];
+    for (let i = 0; i < this.numberOfChannels; i++) {
+      buffers.push(new Float32Array(this.length));
+    }
+    return Promise.resolve({
+      numberOfChannels: this.numberOfChannels,
+      length: this.length,
+      sampleRate: this.sampleRate,
+      getChannelData: (channel) => buffers[channel]
+    });
   }
 };
 
@@ -411,6 +440,66 @@ sound Snare:
       const result = engine.play('ComplexDrum', {}, 2);
 
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('output validation', () => {
+    it('should throw when a sound has no output expression', async () => {
+      await engine.init();
+      engine.compile(`sound Empty:
+  body = sine(440Hz)`);
+
+      expect(() => engine.play('Empty')).toThrow(/has no output/);
+    });
+  });
+
+  describe('pitch_down', () => {
+    it('should schedule a falling frequency ramp on the preceding oscillator', async () => {
+      await engine.init();
+      engine.compile(`sound Kick:
+  sine(120Hz) → pitch_down(200ms) → decay(400ms)`);
+
+      const graph = engine.play('Kick', {}, 1);
+
+      expect(graph).toBeDefined();
+    });
+
+    it('should drop to a quarter of the start frequency by default', async () => {
+      await engine.init();
+      const ctx = engine.audioContext;
+      const osc = ctx.createOscillator();
+      osc.frequency.value = 200;
+
+      engine.compiler.applyPitchMod(
+        { source: osc },
+        { duration: 0.2, targetFreq: null, startTime: 0 }
+      );
+
+      expect(osc.frequency.exponentialRampToValueAtTime).toHaveBeenCalledWith(50, 0.2);
+    });
+  });
+
+  describe('render / export', () => {
+    it('should render a sound to an AudioBuffer offline', async () => {
+      await engine.init();
+      engine.compile(`sound Tone:
+  sine(440Hz) → decay(200ms)`);
+
+      const buffer = await engine.render('Tone', {}, 1, 44100);
+
+      expect(buffer.length).toBe(44100);
+      expect(buffer.numberOfChannels).toBe(2);
+    });
+
+    it('should encode a rendered sound as a WAV blob', async () => {
+      await engine.init();
+      engine.compile(`sound Tone:
+  sine(440Hz) → decay(200ms)`);
+
+      const blob = await engine.renderToWav('Tone', {}, 1, 44100);
+
+      expect(blob.type).toBe('audio/wav');
+      expect(blob.size).toBe(44 + 44100 * 2 * 2);
     });
   });
 });
