@@ -34,9 +34,16 @@ export class AuralisCompiler {
   resolveParams(paramDefs, args) {
     const result = {};
     for (const param of paramDefs) {
-      result[param.name] = args[param.name] !== undefined
-        ? args[param.name]
-        : this.evaluateLiteral(param.defaultValue);
+      if (args[param.name] !== undefined) {
+        const argValue = args[param.name];
+        if (typeof argValue === 'number') {
+          result[param.name] = { type: 'literal', value: argValue, unit: null };
+        } else {
+          result[param.name] = argValue;
+        }
+      } else {
+        result[param.name] = this.evaluateLiteral(param.defaultValue);
+      }
     }
     return result;
   }
@@ -129,7 +136,14 @@ export class AuralisCompiler {
     if (expr.type === 'Literal') {
       return { type: 'literal', value: expr.value, unit: expr.unit };
     }
+    if (expr.type === 'literal') {
+      return expr;
+    }
     return this.evaluateExpression(expr, {});
+  }
+
+  midiToFrequency(midiNote) {
+    return 440 * Math.pow(2, (midiNote - 69) / 12);
   }
 
   parseFrequency(value) {
@@ -137,6 +151,9 @@ export class AuralisCompiler {
     if (value.type === 'literal') {
       if (value.unit === 'Hz') return value.value;
       if (value.unit === 'kHz') return value.value * 1000;
+      if (!value.unit && value.value >= 0 && value.value <= 127) {
+        return this.midiToFrequency(value.value);
+      }
     }
     return 440;
   }

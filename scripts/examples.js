@@ -47,5 +47,17 @@ export const examples = {
   widehihat: `sound WideHiHat:
   left = white → highpass(8000Hz) → pan(-0.8) → decay(120ms)
   right = white → highpass(7500Hz) → pan(0.8) → decay(100ms)
-  mix left + right`
+  mix left + right`,
+
+  midisynth: `sound MidiSynth(note = 60):
+  mix saw(note) → lowpass(1500Hz, q=5) → adsr(attack=10ms, decay=150ms, sustain=0.6, release=300ms)`,
+
+  midicmajor: `sound CMajorChord(n1 = 60, n2 = 64, n3 = 67):
+  note1 = sine(n1)
+  note2 = sine(n2)
+  note3 = sine(n3)
+  mix note1 + note2 + note3 → adsr(attack=50ms, decay=200ms, sustain=0.7, release=400ms)`,
+
+  midibass: `sound MidiBass(note = 36):
+  mix saw(note) + square(note) → lowpass(800Hz, q=8) → adsr(attack=5ms, decay=250ms, sustain=0.4, release=150ms)`
 };
